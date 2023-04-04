@@ -52,7 +52,7 @@ namespace AccountReg.Controllers
         /// </summary>
         /// <param name="user">Login details.</param>
         /// <returns>Returns the user object from the server.</returns>
-        [HttpPost("login")]
+        [HttpPost("Login")]
         [SwaggerOperation(Summary = "Logowanie użytkownika")]
         public async Task<ActionResult<User>> Login([FromForm] UserLogin user)
         {
@@ -90,7 +90,7 @@ namespace AccountReg.Controllers
         /// </summary>
         /// <param name="user">New user details.</param>
         /// <returns>Returns the registered user object from the server.</returns>
-        [HttpPost("register")]
+        [HttpPost("Register")]
         [SwaggerOperation(Summary = "Rejestracja użytkownika")]
         public async Task<ActionResult<User>> Register([FromForm] User user)
         {
