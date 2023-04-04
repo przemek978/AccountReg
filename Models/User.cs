@@ -9,7 +9,7 @@ public partial class User
 {
     [Key]
     [Required]
-    [StringLength(11)]
+    [StringLength(11, MinimumLength = 11)]
     public string Pesel { get; set; } = null!;
 
     [Required]
@@ -22,13 +22,14 @@ public partial class User
 
     [Required]
     [MaxLength(256)]
+    [EmailAddress(ErrorMessage ="Invalid email format")]
     public string Email { get; set; } = null!;
 
     [Required]
     [MaxLength(50)]
     public string Password { get; set; } = null!;
 
-    [Range(0, 150)]
+    [Range(0, 100)]
     public int? Age { get; set; }
 
     [RegularExpression(@"^\d+(\.\d{1,3})?$")]

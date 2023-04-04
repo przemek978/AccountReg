@@ -30,6 +30,7 @@ namespace AccountReg.Controllers
         /// </summary>
         /// <returns>A list of all users.</returns>
         [HttpGet]
+        [SwaggerOperation(Summary = "Wszyscy użytkownicy")]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
             try
@@ -55,153 +56,74 @@ namespace AccountReg.Controllers
         [SwaggerOperation(Summary = "Logowanie użytkownika")]
         public async Task<ActionResult<User>> Login([FromForm] UserLogin user)
         {
-            var userFromDb = await _context.Users.FirstOrDefaultAsync(u => u.Email == user.Email);
-
-            if (userFromDb == null)
+            try
             {
-                return BadRequest("Invalid email or password");
+                if (ModelState.IsValid)
+                {
+                    var userFromDb = await _context.Users.FirstOrDefaultAsync(u => u.Email == user.Email);
+
+                    if (userFromDb == null)
+                    {
+                        return Unauthorized("Invalid email or password");
+                    }
+
+                    var passwordValid = userFromDb.Password == user.Password;
+                    if (!passwordValid)
+                    {
+                        return Unauthorized("Invalid email or password");
+                    }
+
+                    return Ok(userFromDb);
+                }
+                else
+                {
+                    return BadRequest(ModelState);
+                }
             }
-
-            var passwordValid = userFromDb.Password == user.Password;
-
-            if (!passwordValid)
+            catch (Exception)
             {
-                return BadRequest("Invalid email or password");
+                return StatusCode(StatusCodes.Status500InternalServerError);
             }
-
-            return Ok(userFromDb);
         }
         /// <summary>
         /// Registers a new user.
         /// </summary>
         /// <param name="user">New user details.</param>
         /// <returns>Returns the registered user object from the server.</returns>
-
         [HttpPost("register")]
         [SwaggerOperation(Summary = "Rejestracja użytkownika")]
         public async Task<ActionResult<User>> Register([FromForm] User user)
         {
-            if (ModelState.IsValid)
+            try
             {
-                var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == user.Email);
-
-                if (existingUser != null)
+                if (ModelState.IsValid)
                 {
-                    return BadRequest("Email address already in use");
+                    var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == user.Email);
+
+                    if (existingUser != null)
+                    {
+                        return Conflict("Email address already in use");
+                    }
+                    var UserPesel = await _context.Users.FirstOrDefaultAsync(u => u.Pesel == user.Pesel);
+                    if (UserPesel!=null)
+                    {
+                        return Conflict("User with this PESEL already exists");
+                    }
+
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync();
+
+                    return Ok(user);
                 }
-
-                _context.Users.Add(user);
-                await _context.SaveChangesAsync();
-
-                return Ok(user);
+                else
+                {
+                    return BadRequest(ModelState);
+                }
             }
-            else
+            catch (Exception)
             {
-                return BadRequest(ModelState);
+                return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
-
-        //// GET: api/Users/5
-        //[HttpGet("{id}")]
-        //public async Task<ActionResult<User>> GetUser(string id)
-        //{
-        //    if (_context.Users == null)
-        //    {
-        //        return NotFound();
-        //    }
-        //    var user = await _context.Users.FindAsync(id);
-
-        //    if (user == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    return user;
-        //}
-
-        //// PUT: api/Users/5
-        //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        //[HttpPut("{id}")]
-        //public async Task<IActionResult> PutUser(string id, User user)
-        //{
-        //    if (id != user.Pesel)
-        //    {
-        //        return BadRequest();
-        //    }
-
-        //    _context.Entry(user).State = EntityState.Modified;
-
-        //    try
-        //    {
-        //        await _context.SaveChangesAsync();
-        //    }
-        //    catch (DbUpdateConcurrencyException)
-        //    {
-        //        if (!UserExists(id))
-        //        {
-        //            return NotFound();
-        //        }
-        //        else
-        //        {
-        //            throw;
-        //        }
-        //    }
-
-        //    return NoContent();
-        //}
-
-        //// POST: api/Users
-        //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        //[HttpPost]
-        //public async Task<ActionResult<User>> PostUser(User user)
-        //{
-        //  if (_context.Users == null)
-        //  {
-        //      return Problem("Entity set 'UserContext.Users'  is null.");
-        //  }
-        //    _context.Users.Add(user);
-        //    try
-        //    {
-        //        await _context.SaveChangesAsync();
-        //    }
-        //    catch (DbUpdateException)
-        //    {
-        //        if (UserExists(user.Pesel))
-        //        {
-        //            return Conflict();
-        //        }
-        //        else
-        //        {
-        //            throw;
-        //        }
-        //    }
-
-        //    return CreatedAtAction("GetUser", new { id = user.Pesel }, user);
-        //}
-
-        //// DELETE: api/Users/5
-        //[HttpDelete("{id}")]
-        //public async Task<IActionResult> DeleteUser(string id)
-        //{
-        //    if (_context.Users == null)
-        //    {
-        //        return NotFound();
-        //    }
-        //    var user = await _context.Users.FindAsync(id);
-        //    if (user == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    _context.Users.Remove(user);
-        //    await _context.SaveChangesAsync();
-
-        //    return NoContent();
-        //}
-
-        //private bool UserExists(string id)
-        //{
-        //    return (_context.Users?.Any(e => e.Pesel == id)).GetValueOrDefault();
-        //}
     }
 }
