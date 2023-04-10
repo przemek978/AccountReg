@@ -34,5 +34,8 @@ public partial class User
 
     [RegularExpression(@"^\d+(\.\d{1,3})?$")]
     public decimal? AvgCon { get; set; }
+
+
+
 }
 

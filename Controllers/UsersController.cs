@@ -4,9 +4,18 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using AccountReg.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Configuration;
+
 
 namespace AccountReg.Controllers
 {
@@ -18,10 +27,12 @@ namespace AccountReg.Controllers
     public class UsersController : ControllerBase
     {
         private readonly UserContext _context;
+        private readonly IConfiguration _configuration;
 
-        public UsersController(UserContext context)
+        public UsersController(UserContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         // GET: api/Users
@@ -29,8 +40,9 @@ namespace AccountReg.Controllers
         /// Gets a list of all users.
         /// </summary>
         /// <returns>A list of all users.</returns>
-        [HttpGet]
         [SwaggerOperation(Summary = "Wszyscy użytkownicy")]
+        [Authorize]
+        [HttpGet]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
             try
@@ -40,6 +52,8 @@ namespace AccountReg.Controllers
                 {
                     return NotFound();
                 }
+                //var userId = User.FindFirst(ClaimTypes.Name)?.Value;
+                //var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", string.Empty);
                 return await _context.Users.ToListAsync();
             }
             catch (Exception)
@@ -52,6 +66,7 @@ namespace AccountReg.Controllers
         /// </summary>
         /// <param name="user">Login details.</param>
         /// <returns>Returns the user object from the server.</returns>
+        
         [HttpPost("Login")]
         [SwaggerOperation(Summary = "Logowanie użytkownika")]
         public async Task<ActionResult<User>> Login([FromForm] UserLogin user)
@@ -72,8 +87,25 @@ namespace AccountReg.Controllers
                     {
                         return Unauthorized("Invalid email or password");
                     }
+                    //var _secretKey = "vDpakkq8kMhbnzEkyYi8gQWyLxIjpjW0nUffSfTZO9Vbo7sW8vmOmGCYeuYnGPHz";
+                    var key = Encoding.ASCII.GetBytes(_configuration["JWT:SecretKey"]);
+                    var tokenHandler = new JwtSecurityTokenHandler();
 
-                    return Ok(userFromDb);
+                    var claims = new[]
+                    {
+                        new Claim(ClaimTypes.Name, user.Email) // Przykładowy claim z nazwiskiem użytkownika
+                    };
+
+                    // Tworzenie tokena
+                    var token = new JwtSecurityToken(
+                        issuer: _configuration["JWT:Issuer"], // Wydawca tokena
+                        audience: _configuration["JWT:Audience"], // Odbiorca tokena
+                        claims: claims,
+                        expires: DateTime.UtcNow.AddMinutes(30), // Czas wygaśnięcia tokena (np. po 30 minutach)
+                        signingCredentials: new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256) // Uwierzytelnianie z użyciem HMACSHA256
+                    );
+                    var tokenString = tokenHandler.WriteToken(token);
+                    return Ok(tokenString);
                 }
                 else
                 {
@@ -105,7 +137,7 @@ namespace AccountReg.Controllers
                         return Conflict("Email address already in use");
                     }
                     var UserPesel = await _context.Users.FirstOrDefaultAsync(u => u.Pesel == user.Pesel);
-                    if (UserPesel!=null)
+                    if (UserPesel != null)
                     {
                         return Conflict("User with this PESEL already exists");
                     }
