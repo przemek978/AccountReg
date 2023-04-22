@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Swashbuckle.AspNetCore.Annotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AccountReg.Models;
 
@@ -27,7 +29,20 @@ public partial class User
 
     [Required]
     [MaxLength(50)]
+    [SwaggerSchema(Format = "password")]
+    [JsonIgnore]
     public string Password { get; set; } = null!;
+
+    [Required]
+    [MaxLength(50)]
+    [NotMapped]
+    [SwaggerSchema(Format = "password")]
+    [JsonIgnore]
+    public string RePassword { get; set; } = null!;
+
+    [Required]
+    [MaxLength(9)]
+    public string Phone{ get; set; } = null!;
 
     [Range(0, 100)]
     public int? Age { get; set; }
