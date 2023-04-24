@@ -57,7 +57,7 @@ namespace AccountReg.Controllers
                         return Unauthorized("Invalid email or password");
                     }
 
-                    var passwordValid = userFromDb.Password == user.Password;
+                    var passwordValid = passwordHasher.VerifyHashedPassword(null,userFromDb.Password,user.Password) == PasswordVerificationResult.Success;
                     if (!passwordValid)
                     {
                         return Unauthorized("Invalid email or password");
@@ -107,7 +107,8 @@ namespace AccountReg.Controllers
                         return Unauthorized("Invalid email or password");
                     }
 
-                    var passwordValid = userFromDb.Password == user.Password;
+                    //var passwordValid = userFromDb.Password == user.Password;
+                    var passwordValid = passwordHasher.VerifyHashedPassword(null, userFromDb.Password, user.Password) == PasswordVerificationResult.Success;
                     if (!passwordValid)
                     {
                         return Unauthorized("Invalid email or password");
