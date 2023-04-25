@@ -62,21 +62,21 @@ namespace AccountReg.Controllers
                     {
                         return Unauthorized("Invalid email or password");
                     }
-                    //var _secretKey = "vDpakkq8kMhbnzEkyYi8gQWyLxIjpjW0nUffSfTZO9Vbo7sW8vmOmGCYeuYnGPHz";
+
                     var key = Encoding.ASCII.GetBytes(_configuration["JWT:SecretKey"]);
                     var tokenHandler = new JwtSecurityTokenHandler();
 
                     var claims = new[]
                     {
-                        new Claim(ClaimTypes.Name, user.Email) // Przykładowy claim z nazwiskiem użytkownika
+                        new Claim(ClaimTypes.Name, user.Email) 
                     };
 
                     // Tworzenie tokena
                     var token = new JwtSecurityToken(
-                        issuer: _configuration["JWT:Issuer"], // Wydawca tokena
-                        audience: _configuration["JWT:Audience"], // Odbiorca tokena
+                        issuer: _configuration["JWT:Issuer"],
+                        audience: _configuration["JWT:Audience"], 
                         claims: claims,
-                        expires: DateTime.UtcNow.AddMinutes(30), // Czas wygaśnięcia tokena (np. po 30 minutach)
+                        expires: DateTime.UtcNow.AddMinutes(30),
                         signingCredentials: new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256) // Uwierzytelnianie z użyciem HMACSHA256
                     );
                     var tokenString = tokenHandler.WriteToken(token);
@@ -92,7 +92,58 @@ namespace AccountReg.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
+        /// <summary>
+        /// Registers a new user.
+        /// </summary>
+        /// <param name="user">New user details.</param>
+        /// <returns>Returns the registered user object from the server.</returns>
+        [HttpPost("Register")]
+        [SwaggerOperation(Summary = "Rejestracja użytkownika")]
+        public async Task<ActionResult<User>> Register([FromForm] User user)
+        {
+            try
+            {
+                if (ModelState.IsValid)
+                {
+                    var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == user.Email);
+
+                    if (existingUser != null)
+                    {
+                        return Conflict("Email address already in use");
+                    }
+                    var UserPesel = await _context.Users.FirstOrDefaultAsync(u => u.Pesel == user.Pesel);
+                    if (UserPesel != null)
+                    {
+                        return Conflict("User with this PESEL already exists");
+                    }
+                    if (user.Password == user.RePassword)
+                    {
+                        string hashedPassword = passwordHasher.HashPassword(null, user.Password);
+                        user.Password = hashedPassword;
+                        // user.RePassword = " ";
+                    }
+                    else
+                    {
+                        return BadRequest("Passwords aren't the same");
+                    }
+
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync();
+
+                    return Ok(user);
+                }
+                else
+                {
+                    return BadRequest(ModelState);
+                }
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
         [HttpPost("User")]
+        [Authorize]
         [SwaggerOperation(Summary = "Informacje o użytkowniku")]
         public async Task<ActionResult<User>> GetUser([FromForm] UserLogin user)
         {
@@ -152,57 +203,8 @@ namespace AccountReg.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
+        
         }
 
-        /// <summary>
-        /// Registers a new user.
-        /// </summary>
-        /// <param name="user">New user details.</param>
-        /// <returns>Returns the registered user object from the server.</returns>
-        [HttpPost("Register")]
-        [SwaggerOperation(Summary = "Rejestracja użytkownika")]
-        public async Task<ActionResult<User>> Register([FromForm] User user)
-        {
-            try
-            {
-                if (ModelState.IsValid)
-                {
-                    var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == user.Email);
-
-                    if (existingUser != null)
-                    {
-                        return Conflict("Email address already in use");
-                    }
-                    var UserPesel = await _context.Users.FirstOrDefaultAsync(u => u.Pesel == user.Pesel);
-                    if (UserPesel != null)
-                    {
-                        return Conflict("User with this PESEL already exists");
-                    }
-                    if (user.Password == user.RePassword)
-                    {
-                        string hashedPassword = passwordHasher.HashPassword(null, user.Password);
-                        user.Password = hashedPassword;
-                       // user.RePassword = " ";
-                    }
-                    else
-                    {
-                        return BadRequest(ModelState);
-                    }
-
-                    _context.Users.Add(user);
-                    await _context.SaveChangesAsync();
-
-                    return Ok(user);
-                }
-                else
-                {
-                    return BadRequest(ModelState);
-                }
-            }
-            catch (Exception)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError);
-            }
-        }
     }
 }

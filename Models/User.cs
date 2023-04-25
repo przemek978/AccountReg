@@ -28,26 +28,25 @@ public partial class User
     public string Email { get; set; } = null!;
 
     [Required]
-    [MaxLength(50)]
+    [StringLength(32, MinimumLength = 8,ErrorMessage = "Password must be a minimum of 8 characters and a maximum of 32 characters")]
     [SwaggerSchema(Format = "password")]
     [JsonIgnore]
     public string Password { get; set; } = null!;
 
     [Required]
-    [MaxLength(50)]
     [NotMapped]
     [SwaggerSchema(Format = "password")]
     [JsonIgnore]
     public string RePassword { get; set; } = null!;
 
     [Required]
-    [MaxLength(9)]
+    [StringLength(9, MinimumLength = 9)]
     public string Phone{ get; set; } = null!;
 
     [Range(0, 100)]
     public int? Age { get; set; }
 
-    [RegularExpression(@"^\d+(\.\d{1,3})?$")]
+    [RegularExpression(@"^\d{1,9}(\,\d{1,3})?$", ErrorMessage = "Average consumption from the last 3 months should be rounded to 3 decimal places")]
     public decimal? AvgCon { get; set; }
 
 
