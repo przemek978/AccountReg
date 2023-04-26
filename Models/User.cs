@@ -11,6 +11,7 @@ public partial class User
 {
     [Key]
     [Required]
+    [RegularExpression(@"^[0-9]{11}$", ErrorMessage = "PESEL number should consist of 11 digits.")]
     [StringLength(11, MinimumLength = 11)]
     public string Pesel { get; set; } = null!;
 
