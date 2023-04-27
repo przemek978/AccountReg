@@ -41,7 +41,7 @@ namespace AccountReg.Controllers
         /// Logs in a user based on email address and password.
         /// </summary>
         /// <param name="user">Login details.</param>
-        /// <returns>Returns the user object from the server.</returns>
+        /// <returns>Returns an authentication token.</returns>
         [HttpPost("Login")]
         [SwaggerOperation(Summary = "Logowanie użytkownika")]
         public async Task<ActionResult<User>> Login([FromForm] UserLogin user)
@@ -80,7 +80,7 @@ namespace AccountReg.Controllers
                         signingCredentials: new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256) // Uwierzytelnianie z użyciem HMACSHA256
                     );
                     var tokenString = tokenHandler.WriteToken(token);
-                    return Ok(tokenString);
+                    return Ok("Bearer "+tokenString);
                 }
                 else
                 {
@@ -111,12 +111,14 @@ namespace AccountReg.Controllers
                     {
                         return Conflict("Email address already in use");
                     }
+
                     var UserPesel = await _context.Users.FirstOrDefaultAsync(u => u.Pesel == user.Pesel);
                     if (UserPesel != null)
                     {
                         return Conflict("User with this PESEL already exists");
                     }
-                    if (user.Password == user.RePassword)
+
+                    if (user.Password.Equals(user.RePassword))
                     {
                         string hashedPassword = passwordHasher.HashPassword(null, user.Password);
                         user.Password = hashedPassword;
@@ -125,6 +127,11 @@ namespace AccountReg.Controllers
                     else
                     {
                         return BadRequest("Passwords aren't the same");
+                    }
+
+                    if (!user.ValidatePesel())
+                    {
+                        return BadRequest("Pesel is not valid");
                     }
 
                     _context.Users.Add(user);
@@ -142,28 +149,29 @@ namespace AccountReg.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
-        [HttpPost("User")]
+        /// <summary>
+        /// Retrieves user information
+        /// </summary>
+        /// <returns>Returns the  user object from the server.</returns>
+        [HttpGet("User")]
         [Authorize]
-        [SwaggerOperation(Summary = "Informacje o użytkowniku")]
-        public async Task<ActionResult<User>> GetUser([FromForm] UserLogin user)
+        [SwaggerOperation(Summary = "Informacje o zalogowanym użytkowniku")]
+        public async Task<ActionResult<User>> GetUser()
         {
             try
             {
                 if (ModelState.IsValid)
                 {
-                    var userFromDb = await _context.Users.FirstOrDefaultAsync(u => u.Email == user.Email);
 
-                    if (userFromDb == null)
-                    {
-                        return Unauthorized("Invalid email or password");
-                    }
+                    var authHeader = Request.Headers["Authorization"];
+                    var jwtToken = authHeader.ToString().Replace("Bearer ", "");
 
-                    //var passwordValid = userFromDb.Password == user.Password;
-                    var passwordValid = passwordHasher.VerifyHashedPassword(null, userFromDb.Password, user.Password) == PasswordVerificationResult.Success;
-                    if (!passwordValid)
-                    {
-                        return Unauthorized("Invalid email or password");
-                    }
+                    var handler = new JwtSecurityTokenHandler();
+                    var token = handler.ReadJwtToken(jwtToken);
+
+
+                    var emailClaim=token.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+                    var userFromDb = await _context.Users.FirstOrDefaultAsync(u => u.Email == emailClaim);
 
                     return Ok(userFromDb);
                 }
@@ -191,12 +199,12 @@ namespace AccountReg.Controllers
             try
             {
                 var users = await _context.Users.ToListAsync();
+
                 if (_context.Users == null)
                 {
                     return NotFound();
                 }
-                //var userId = User.FindFirst(ClaimTypes.Name)?.Value;
-                //var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", string.Empty);
+
                 return await _context.Users.ToListAsync();
             }
             catch (Exception)

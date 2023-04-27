@@ -12,24 +12,27 @@ public partial class User
     [Key]
     [Required]
     [RegularExpression(@"^[0-9]{11}$", ErrorMessage = "PESEL number should consist of 11 digits.")]
-    [StringLength(11, MinimumLength = 11)]
+    //[StringLength(11, MinimumLength = 11)]
     public string Pesel { get; set; } = null!;
 
     [Required]
     [MaxLength(50)]
+    [RegularExpression(@"^[A-Za-ząćęłńóśźżĄĆĘŁŃÓŚŹŻ]+$", ErrorMessage = "Name can only contain uppercase and lowercase letters")]
     public string Name { get; set; } = null!;
 
     [Required]
     [MaxLength(50)]
+    [RegularExpression(@"^[A-Za-ząćęłńóśźżĄĆĘŁŃÓŚŹŻ]+$", ErrorMessage = "Surname can only contain uppercase and lowercase letters")]
     public string Surname { get; set; } = null!;
 
     [Required]
     [MaxLength(256)]
-    [EmailAddress(ErrorMessage ="Invalid email format")]
+    //[EmailAddress(ErrorMessage ="Invalid email format")]
+    [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", ErrorMessage = "Invalid email format")]
     public string Email { get; set; } = null!;
 
     [Required]
-    [StringLength(32, MinimumLength = 8,ErrorMessage = "Password must be a minimum of 8 characters and a maximum of 32 characters")]
+    [StringLength(32, MinimumLength = 8, ErrorMessage = "Password must be a minimum of 8 characters and a maximum of 32 characters")]
     [SwaggerSchema(Format = "password")]
     [JsonIgnore]
     public string Password { get; set; } = null!;
@@ -41,8 +44,9 @@ public partial class User
     public string RePassword { get; set; } = null!;
 
     [Required]
-    [StringLength(9, MinimumLength = 9)]
-    public string Phone{ get; set; } = null!;
+    [RegularExpression(@"^[0-9]{9}$", ErrorMessage = "Phone number should consist of 9 digits")]
+//[StringLength(9, MinimumLength = 9)]
+    public string Phone { get; set; } = null!;
 
     [Range(0, 100)]
     public int? Age { get; set; }
@@ -50,7 +54,24 @@ public partial class User
     [RegularExpression(@"^\d{1,9}(\,\d{1,3})?$", ErrorMessage = "Average consumption from the last 3 months should be rounded to 3 decimal places")]
     public decimal? AvgCon { get; set; }
 
+    public bool ValidatePesel()
+    {
+        int[] multipliers = { 1, 3, 7, 9, 1, 3, 7, 9, 1, 3 };
 
+        int sum = 0;
+        for (int i = 0; i < multipliers.Length; i++)
+        {
+            sum += multipliers[i] * int.Parse(Pesel[i].ToString());
+        }
+
+        int control = sum % 10;
+
+        if (control.ToString().Equals(Pesel[10].ToString()))
+        {
+            return true;
+        }
+        return false;
+    }
 
 }
 
