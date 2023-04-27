@@ -12,7 +12,6 @@ public partial class User
     [Key]
     [Required]
     [RegularExpression(@"^[0-9]{11}$", ErrorMessage = "PESEL number should consist of 11 digits.")]
-    //[StringLength(11, MinimumLength = 11)]
     public string Pesel { get; set; } = null!;
 
     [Required]
@@ -27,7 +26,6 @@ public partial class User
 
     [Required]
     [MaxLength(256)]
-    //[EmailAddress(ErrorMessage ="Invalid email format")]
     [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", ErrorMessage = "Invalid email format")]
     public string Email { get; set; } = null!;
 
@@ -45,7 +43,6 @@ public partial class User
 
     [Required]
     [RegularExpression(@"^[0-9]{9}$", ErrorMessage = "Phone number should consist of 9 digits")]
-//[StringLength(9, MinimumLength = 9)]
     public string Phone { get; set; } = null!;
 
     [Range(0, 100)]
@@ -64,7 +61,7 @@ public partial class User
             sum += multipliers[i] * int.Parse(Pesel[i].ToString());
         }
 
-        int control = sum % 10;
+        int control = 10 - sum % 10;
 
         if (control.ToString().Equals(Pesel[10].ToString()))
         {

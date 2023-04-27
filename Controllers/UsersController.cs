@@ -71,7 +71,6 @@ namespace AccountReg.Controllers
                         new Claim(ClaimTypes.Name, user.Email) 
                     };
 
-                    // Tworzenie tokena
                     var token = new JwtSecurityToken(
                         issuer: _configuration["JWT:Issuer"],
                         audience: _configuration["JWT:Audience"], 
@@ -122,7 +121,6 @@ namespace AccountReg.Controllers
                     {
                         string hashedPassword = passwordHasher.HashPassword(null, user.Password);
                         user.Password = hashedPassword;
-                        // user.RePassword = " ";
                     }
                     else
                     {
